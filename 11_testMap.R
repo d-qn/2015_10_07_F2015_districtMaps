@@ -18,7 +18,7 @@ theme_map <- function(base_size = 9, base_family = font) {
       panel.grid = element_blank(), panel.margin = unit(0, "lines"), 
       plot.background = element_blank(), legend.justification = c(0, 0),
       plot.margin = unit(c(4, 0, 1.5, 0), "lines"),
-      plot.title = element_text(hjust = 0, size = 20))
+      plot.title = element_text(hjust = 0, vjust = 0, size = 20))
 } 
 
 ############ SETTINGS ##############
@@ -53,6 +53,9 @@ colnames(ofsId2district) <- c('ofsid', 'name')
 
 path.ch <- getPathShp('CH')
 co <- readOGR(path.ch, layer = 'municipalities-without-lakes')
+# reproject coordintes in the standard projection: http://gis.stackexchange.com/questions/45263/converting-geographic-coordinate-system-in-r 
+co <- spTransform(co, CRS("+init=epsg:4326"))
+
 # assign the district ID as ID
 ## --> for district not present, use the canton ID * 100 !!!
 co@data$id <- ifelse(co@data$BEZIRKSNR == 0, co@data$KANTONSNR * 100, co@data$BEZIRKSNR)
@@ -62,6 +65,7 @@ co.df$id <- as.numeric(co.df$id)
 
 # load canton borders
 ct <- readOGR(path.ch, layer = 'swissBOUNDARIES3D_1_2_TLM_KANTONSGEBIET')
+ct <- spTransform(ct, CRS("+init=epsg:4326"))
 ct.df <- formatShp(ct)
 
 co.df$districtName <- ofsId2district[match(co.df$id, ofsId2district$ofsid),'name']
@@ -70,21 +74,52 @@ co.df$var <- lang[match(unlist(co.df$districtName), names(lang))]
 
 # plot swiss districts map
 co.map <- ggplot(co.df, aes(x = long, y = lat, group = group)) + 
-  geom_polygon(aes(fill = var), colour = "#f7f5ed", size = 0.05) +
-  theme_map() + scale_fill_manual(values = swi_rpal) + coord_fixed(ratio = 1)
-map <- co.map + geom_path(data = ct.df, colour = "#f7f5ed", size = 0.25) 
+  geom_polygon(aes(fill = var), colour = "#f7f5ed", size = 0.03) +
+  theme_map() + coord_fixed(ratio = 1.6) + theme(legend.position = c(0.5, -0.01), 
+  legend.direction = "horizontal", legend.justification = "center",
+  legend.key.size = unit(0.9, "lines")) 
 
-map <- map + ggtitle("Régions linguistiques de la Suisse") + 
-  theme(legend.position = c(0.5, -0.01), legend.direction = "horizontal", legend.justification = "center",
-  legend.key.size = unit(0.9, "lines")) + 
-  guides(fill=guide_legend(title=NULL))
+
+map <- co.map + scale_fill_manual(values = swi_rpal) + 
+  geom_path(data = ct.df, colour = "#f7f5ed", size = 0.3) +
+  ggtitle("Régions linguistiques de la Suisse") + guides(fill = guide_legend(title=NULL))
+
   
 # http://stackoverflow.com/questions/21997715/add-ggplot-annotation-outside-the-panel-or-two-titles
-g <- gtable_add_grob(ggplotGrob(map), grobTree(textGrob("Election fédérales 2015", x = 0, hjust = 0, gp = gpar(fontsize = 18, fontfamily = fontH, fontface = 'italic', col = "grey"))), t=1, l=4)
-grid.draw(g)  
+grobMe <- function(gg, text = "Elections fédérales 2015") {
+  g <- gtable_add_grob(ggplotGrob(gg), grobTree(textGrob(text, x = 0,  y = unit(0.18, "npc"), hjust = 0, gp = gpar(fontsize = 18, fontfamily = fontH, 
+  fontface = 'italic', col = "grey"))), t=1, l=4)
+  grid.draw(g)    
+}
 
 
 
 
+### #### add largest Swiss cities
+# library(ggmap)
+# cities <- data.frame(
+#   names = c("Zurich", "Geneva", "Basel", "Bern", "Lausanne"),
+#   size = c(1102, 493, 486, 349, 317)
+# )
+# cities <- cbind(cities, geocode(paste(cities$names, ", Switzerland")))
+# write.csv(cities, file = "data/cities.csv", row.names = F)
+cities <-read.csv("data/cities.csv")
+
+
+
+map2 <- co.map + scale_fill_manual(values = alpha(swi_rpal, 0.3), guide = F) + 
+  geom_path(data = ct.df, colour = "#f7f5ed", size = 0.3) +
+  ggtitle("5 plus grandes agglomérations de Suisse") + guides(fill = F)
+
+map2 <- map2 + geom_point(data = cities, aes(x = lon, y = lat, size = size, group = NULL), alpha=0.7, colour = "#4C4C4C") + 
+  geom_text(data = cities,  aes(x = lon, y = lat - 0.07, label = names, group = NULL)) +
+  scale_size_area(max_size = 20)
+
+pdfswi_long("test.pdf")
+grid.newpage()
+grobMe(map)
+grid.newpage()
+grobMe(map2)
+dev.off()
 
 
