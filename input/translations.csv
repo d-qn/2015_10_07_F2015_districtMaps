@@ -1,0 +1,25 @@
+code,fr
+header,Elections fédérales 2015
+footer,@duc_qn | swissinfo.ch | source: Office fédéral de la statistique
+title.lang,Régions linguistiques de Suisse
+lang.legend.Français,Français
+lang.legend.Allemand Français,Allemand & Français
+lang.legend.Allemand Romanche,Allemand & Romanche
+lang.legend.Allemand,Allemand
+lang.legend.Italien,Italien
+title.cities,Les 5 plus grandes agglomérations de Suisse
+cities.legendTitle,Population (en milliers)
+cities.Zurich,Zürich
+cities.Geneva,Genève
+cities.Basel,Bâle
+cities.Bern,Berne
+cities.Lausanne,Lausanne
+party.PLR,Parti libéral-radical (PLR)
+party.PDC,Parti démocrate-chrétien (PDC)
+party.PS,Parti socialiste (PS)
+party.UDC,Union démocratique du centre (UDC)
+party.PVL,Vert'libéraux
+party.PBD,Parti bourgeois démocratique (PBD)
+party.PES,Les Verts
+party.Autres.partis,Autres partis politiques
+party.Participation.en..,Participation en %
