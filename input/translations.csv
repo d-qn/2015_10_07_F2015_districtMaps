@@ -1,5 +1,5 @@
 code,fr
-header,Elections fédérales 2015
+header,Elections fédérales 2015: force des partis au Conseil national
 footer,@duc_qn | swissinfo.ch | source: Office fédéral de la statistique
 title.lang,Régions linguistiques de Suisse
 lang.legend.Français,Français
@@ -22,4 +22,5 @@ party.PVL,Vert'libéraux
 party.PBD,Parti bourgeois démocratique (PBD)
 party.PES,Les Verts
 party.Autres.partis,Autres partis politiques
-party.Participation.en..,Participation en %
+party.Participation.en..,Participation en % aux élections fédérales
+party.title.append,

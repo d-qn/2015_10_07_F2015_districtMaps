@@ -31,9 +31,9 @@ font <- "Open Sans"
 fontH <- "Open Sans Semibold"
 fontL <- "Open Sans Light"
 
-keyText.size <- 20
+keyText.size <- 22
 legend.pos <- c(0.5, -0.05) 
-cityText.size <- 12
+cityText.size <- 13
 district.size <- 0.08
 canton.size <- 0.5
 
@@ -58,16 +58,16 @@ theme_map <- function(base_size = 9, base_family = font) {
     plot.background = element_blank(), legend.justification = c(0, 0),
     plot.margin = unit(c(3, 0, 1.2, 0), "lines"),
     legend.key = element_rect(colour = NA),
-    legend.key.width=unit(2,"line"),
+    legend.key.width=unit(3.5,"line"),
     legend.text=element_text(size = keyText.size),
-    plot.title = element_text(hjust = 0, vjust = 0, size = 50))
+    plot.title = element_text(hjust = 0, vjust = 0, face = "plain", size = 38))
 } 
 
 # add header and footer to the graphic
 # http://stackoverflow.com/questions/21997715/add-ggplot-annotation-outside-the-panel-or-two-titles
-grobMe <- function(gg, text = txt['header', lang], footer = txt['footer', lang]) {
+gridFormat <- function(gg, text = txt['header', lang], footer = txt['footer', lang]) {
   grid.arrange(gg, 
-    main =  textGrob(text, x = 0.01, hjust = 0, vjust = 4,gp = gpar(fontsize = 40, fontfamily = font, fontface = 'italic', col = "#CCCCCC")),
+    main =  textGrob(text, x = 0.01, hjust = 0, vjust = 4,gp = gpar(fontsize = 42, fontfamily = fontL, col = "black")),
     sub = textGrob(footer, x = 0.95, vjust = -0.1, hjust = 1, gp = gpar(fontsize = 16, fontfamily = font, col = "#CCCCCC"))
   )
 }
@@ -92,7 +92,7 @@ levels(co.df$var) <- paste(" ", levels(co.df$var), "  ")
 
 
 # plot 
-lang.palette <- c('#ab3d3f', '#333366', '#336666', '#669999', '#996699')
+lang.palette <- c('#ab3d3f', '#366096', '#336666', '#669999', '#996699')
 
 baseDistrict.map <- ggplot(co.df, aes(x = long, y = lat, group = group)) + 
   geom_polygon(aes(fill = var), colour = "#f7f5ed", size = district.size) +
@@ -110,38 +110,59 @@ map.lang <- baseDistrict.map + scale_fill_manual(values = lang.palette) +
 cities <- read.csv(cities.file)  
 cities$name <- txt[match(paste0("cities.", cities$names), rownames(txt)), lang]
 
-map.cities <- baseDistrict.map + scale_fill_manual(values = alpha(lang.palette, 0.6)) +
+map.cities <- baseDistrict.map + scale_fill_manual(values = alpha(lang.palette, 0.4)) +
   geom_point(data = cities, aes(x = lon, y = lat, size = size, group = NULL), alpha=0.7, colour = "#4C4C4C") +
   geom_text(data = cities,  aes(x = lon, y = lat - 0.08, label = name, group = NULL), size = cityText.size, family = fontL) +
-  scale_size_area(max_size = 20) + guides(fill = FALSE, size = guide_legend(title = txt['cities.legendTitle',lang])) + 
+  scale_size_area(max_size = 18) + guides(fill = FALSE, size = guide_legend(title = txt['cities.legendTitle',lang])) + 
   theme(legend.title = element_text(size = 14)) +
   ggtitle(txt['title.cities', lang])
 
-maps <- list(map.lang, map.cities)
+maps <- list(lang = map.lang, cities = map.cities)
 
 ###   3. Vote map  
 votes.read <- read.csv(vote2011.file)
+votesByParty.read <- read.csv(vote2011byParty.file)
 
-mapPercentage <- function(co.df, var, breaks = breaks, title = "", colors = c('#EBF0F0', '#295252')) {
+mapPercentage <- function(co.df, var, breaks = breaks, title = "", colors = c('#F7ECEC', '#893132')) {
   
   co.df$var <- cut(var, breaks, include.lowest = T)
-  levels(co.df$var) <- paste0(gsub(",", "-", gsub("(\\[|\\]|\\()", "", levels(co.df$var))), "%")
+  levels(co.df$var) <- paste0(gsub(",", "-", gsub("(\\[|\\]|\\()", "", levels(co.df$var))), "%  ")
   
   co.map <- ggplot(co.df, aes(x = long, y = lat, group = group)) + 
     geom_polygon(aes(fill = var), colour = "#f7f5ed", size = district.size) +
     theme_map() + coord_fixed(ratio = 1.5) + theme(legend.position = legend.pos, 
-    legend.direction = "horizontal", legend.justification = "center",
-    legend.key.size = key.size) + guides(fill=guide_legend(nrow=2)) +
+    legend.direction = "horizontal", legend.justification = "center") +
     geom_path(data = ct.df, colour = "#f7f5ed", size = canton.size) +
-    geom_point(data = cities, aes(x = lon, y = lat, size = size, group = NULL), alpha=0.5, colour = "#4C4C4C") + scale_size_area(max_size = 4) +
-    guides(fill = guide_legend(title=NULL, override.aes = list(colour = NULL)))
+    geom_point(data = cities, aes(x = lon, y = lat, size = size, group = NULL), shape = 1, colour = "black") + 
+    scale_size_area(max_size = 18) +
+    guides(size = FALSE, fill = guide_legend(title=NULL, override.aes = list(colour = NULL)))
   
   co.map + scale_fill_manual(drop = FALSE, values = colorRampPalette(colors, interpolate = "spline")(length(breaks))) + 
     ggtitle(title)
 }
 
+# map participation 
 breaksParticipation <- seq(floor(min(var)), ceiling(max(var)), ceiling(diff(range(var)) / 9))
-maps[[3]] <- mapPercentage(co.df, var = votes.read[,9], breaksParticipation, title = txt["party.Participation.en..", lang], colors = c('#F7ECEC', '#893132'))
+participationMap <- mapPercentage(co.df, var = votes.read[,9], breaksParticipation, 
+  title = txt["party.Participation.en..", lang], colors = c('#EBF0F0', '#295252'))
+
+maps <- c(maps, list(participation = participationMap))
+
+orderedNames <- c(names(sort(votesByParty.read[1,-8], decreasing = T)), names(votesByParty.read)[8])
+
+for(party in orderedNames) {
+  
+  choro <- mapPercentage(co.df, var = votes.read[,party], breaks = breaks, 
+    title = txt[paste0("party.", party), lang], colors = brewer.pal(9, "Purples"))
+  maps[[party]] <- choro       
+}
+
+
+### GIF stitching
+
+saveGIF({
+  sapply(maps, gridFormat)
+},movie.name = "testEF2011_2.gif", interval = 7, nmax = 50, ani.width = 1280, ani.height = 1200, loop = TRUE)
 
 
 
