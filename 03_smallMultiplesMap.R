@@ -24,7 +24,6 @@ vote2011byParty.file <- "input/ef2011_party.csv"
 ## output files
 
 
-
 ## graphic settings
 
 font <- "Open Sans"
@@ -44,8 +43,6 @@ txt <- read.csv(translation.file, row.names = 1, stringsAsFactors = F)
 ### TO DO: LOOP BY LANGUAGE 
 lang <- 'fr'
 
-
-
 ########		HELPERS     ########
 
 # ggplot2 map theme
@@ -63,15 +60,6 @@ theme_map <- function(base_size = 9, base_family = font) {
     plot.title = element_text(hjust = 0, vjust = 0, face = "plain", size = 38))
 } 
 
-# add header and footer to the graphic
-# http://stackoverflow.com/questions/21997715/add-ggplot-annotation-outside-the-panel-or-two-titles
-gridFormat <- function(gg, text = txt['header', lang], footer = txt['footer', lang]) {
-  grid.arrange(gg, 
-    main =  textGrob(text, x = 0.01, hjust = 0, vjust = 4,gp = gpar(fontsize = 42, fontfamily = fontL, col = "black")),
-    sub = textGrob(footer, x = 0.95, vjust = -0.1, hjust = 1, gp = gpar(fontsize = 16, fontfamily = font, col = "#CCCCCC"))
-  )
-}
-
 ############################################################################################
 ###		PLOT
 ############################################################################################
@@ -79,7 +67,6 @@ gridFormat <- function(gg, text = txt['header', lang], footer = txt['footer', la
 # load geographical data
 co.df <- read.csv(district.file)
 ct.df <- read.csv(canton.file)
-
 
 ###     1.Language map   ###
 langRegions <- read.csv(language.file)
@@ -117,7 +104,8 @@ map.cities <- baseDistrict.map + scale_fill_manual(values = alpha(lang.palette, 
   theme(legend.title = element_text(size = 14)) +
   ggtitle(txt['title.cities', lang])
 
-maps <- list(lang = map.lang, cities = map.cities)
+#maps <- list(lang = map.lang, cities = map.cities)
+maps <- list()
 
 ###   3. Vote map  
 votes.read <- read.csv(vote2011.file)
@@ -130,7 +118,7 @@ mapPercentage <- function(co.df, var, breaks = breaks, title = "", colors = c('#
   
   co.map <- ggplot(co.df, aes(x = long, y = lat, group = group)) + 
     geom_polygon(aes(fill = var), colour = "#f7f5ed", size = district.size) +
-    theme_map() + coord_fixed(ratio = 1.5) + theme(legend.position = legend.pos, 
+    theme_map() + coord_fixed(ratio = 1.5) + theme(legend.position = "bottom", 
     legend.direction = "horizontal", legend.justification = "center") +
     geom_path(data = ct.df, colour = "#f7f5ed", size = canton.size) +
     geom_point(data = cities, aes(x = lon, y = lat, size = size, group = NULL), shape = 1, colour = "black") + 
@@ -142,8 +130,9 @@ mapPercentage <- function(co.df, var, breaks = breaks, title = "", colors = c('#
 }
 
 # map participation 
-breaksParticipation <- seq(floor(min(var)), ceiling(max(var)), ceiling(diff(range(var)) / 9))
-participationMap <- mapPercentage(co.df, var = votes.read[,9], breaksParticipation, 
+breaksParticipation <- seq(floor(min(votes.read[,'Participation.en..'])), ceiling(max(votes.read[,'Participation.en..'])), 
+    ceiling(diff(range(votes.read[,'Participation.en..'])) / 9))
+participationMap <- mapPercentage(co.df, var = votes.read[,'Participation.en..'], breaksParticipation, 
   title = txt["party.Participation.en..", lang], colors = c('#EFEDE8', '#61471E'))
 
 
@@ -163,11 +152,22 @@ for(party in orderedNames) {
 }
 
 
-### GIF stitching
+#### Small multiples
+# add header and footer to the graphic
+# http://stackoverflow.com/questions/21997715/add-ggplot-annotation-outside-the-panel-or-two-titles
+# gridFormat <- function(..., text = txt['header', lang], footer = txt['footer', lang]) {
+#   grid.arrange(..., 
+#                main =  textGrob(text, x = 0.01, hjust = 0, vjust = 4,gp = gpar(fontsize = 42, fontfamily = fontL, col = "black")),
+#                sub = textGrob(footer, x = 0.95, vjust = -0.1, hjust = 1, gp = gpar(fontsize = 16, fontfamily = font, col = "#CCCCCC"))
+#   )
+# }
 
-saveGIF({
-  sapply(maps, gridFormat)
-},movie.name = "testEF2011_2.gif", interval = 7, nmax = 50, ani.width = 1280, ani.height = 1200, loop = TRUE)
+# http://www.sthda.com/english/wiki/ggplot2-easy-way-to-mix-multiple-graphs-on-the-same-page-r-software-and-data-visualization#add-a-common-legend-for-multiple-ggplot2-graphs
 
-
-
+get_legend<-function(myggplot){
+  tmp <- ggplot_gtable(ggplot_build(myggplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)
+}
+legend <- get_legend(maps[[3]])

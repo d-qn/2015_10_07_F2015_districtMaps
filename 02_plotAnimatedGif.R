@@ -1,9 +1,7 @@
-library(swiTheme)
-library(swiMap)
 library(dplyr)
+library(ggplot2)
 library(animation)
 require(gtable)
-require(RColorBrewer)
 
 ############################################################################################
 ###		SETTINGS
@@ -22,7 +20,6 @@ cities.file <- "input/cities.csv"
 vote2011.file <- "input/ef2011_district.csv"
 vote2011byParty.file <- "input/ef2011_party.csv"
 ## output files
-
 
 
 ## graphic settings
@@ -142,27 +139,26 @@ mapPercentage <- function(co.df, var, breaks = breaks, title = "", colors = c('#
 }
 
 # map participation 
-breaksParticipation <- seq(floor(min(var)), ceiling(max(var)), ceiling(diff(range(var)) / 9))
-participationMap <- mapPercentage(co.df, var = votes.read[,9], breaksParticipation, 
-  title = txt["party.Participation.en..", lang], colors = c('#EBF0F0', '#295252'))
-
+breaksParticipation <- seq(floor(min(votes.read[,'Participation.en..'])), ceiling(max(votes.read[,'Participation.en..'])), 
+  ceiling(diff(range(votes.read[,'Participation.en..'])) / 9))
+participationMap <- mapPercentage(co.df, var = votes.read[,'Participation.en..'], breaksParticipation, 
+  title = txt["party.Participation.en..", lang], colors = c('#EFEDE8', '#61471E'))
 maps <- c(maps, list(participation = participationMap))
+
 
 orderedNames <- c(names(sort(votesByParty.read[1,-8], decreasing = T)), names(votesByParty.read)[8])
 
 for(party in orderedNames) {
-  
   choro <- mapPercentage(co.df, var = votes.read[,party], breaks = breaks, 
-    title = txt[paste0("party.", party), lang], colors = brewer.pal(9, "Purples"))
+    title = txt[paste0("party.", party), lang], colors = c('#E9EEEE', '#275453'))
   maps[[party]] <- choro       
 }
-
 
 ### GIF stitching
 
 saveGIF({
   sapply(maps, gridFormat)
-},movie.name = "testEF2011_2.gif", interval = 7, nmax = 50, ani.width = 1280, ani.height = 1200, loop = TRUE)
+},movie.name = "testEF2011.gif", interval = 7, nmax = 50, ani.width = 1280, ani.height = 1200, loop = TRUE)
 
 
 
