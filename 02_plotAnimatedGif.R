@@ -1,7 +1,8 @@
 library(dplyr)
 library(ggplot2)
+library(scales)
+library(gridExtra)
 library(animation)
-require(gtable)
 
 ############################################################################################
 ###		SETTINGS
