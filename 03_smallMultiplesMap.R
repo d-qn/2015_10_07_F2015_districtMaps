@@ -1,9 +1,7 @@
-library(swiTheme)
-library(swiMap)
 library(dplyr)
-library(animation)
-require(gtable)
-require(RColorBrewer)
+library(ggplot2)
+library(scales)
+library(gridExtra)
 
 ############################################################################################
 ###		SETTINGS
@@ -30,12 +28,12 @@ font <- "Open Sans"
 fontH <- "Open Sans Semibold"
 fontL <- "Open Sans Light"
 
-keyText.size <- 22
-legend.pos <- c(0.5, -0.05) 
+keyText.size <- 16
+legend.pos <- c(1.5, -0.05) 
 cityText.size <- 13
 district.size <- 0.08
 canton.size <- 0.5
-
+cityCircle.size <- 8
 breaks <- c(0, 2^(0:6), 100)
 
 txt <- read.csv(translation.file, row.names = 1, stringsAsFactors = F)
@@ -53,11 +51,11 @@ theme_map <- function(base_size = 9, base_family = font) {
     panel.background = element_blank(), panel.border = element_blank(), 
     panel.grid = element_blank(), panel.margin = unit(0, "lines"), 
     plot.background = element_blank(), legend.justification = c(0, 0),
-    plot.margin = unit(c(3, 0, 1.2, 0), "lines"),
+    plot.margin = unit(c(0, 0, 0, 0), "lines"),
     legend.key = element_rect(colour = NA),
-    legend.key.width=unit(3.5,"line"),
+    legend.key.width=unit(2,"line"),
     legend.text=element_text(size = keyText.size),
-    plot.title = element_text(hjust = 0, vjust = 0, face = "plain", size = 38))
+    plot.title = element_text(hjust = 0.1, vjust = 0, face = "plain", size = 22))
 } 
 
 ############################################################################################
@@ -100,7 +98,7 @@ cities$name <- txt[match(paste0("cities.", cities$names), rownames(txt)), lang]
 map.cities <- baseDistrict.map + scale_fill_manual(values = alpha(lang.palette, 0.4)) +
   geom_point(data = cities, aes(x = lon, y = lat, size = size, group = NULL), alpha=0.7, colour = "#4C4C4C") +
   geom_text(data = cities,  aes(x = lon, y = lat - 0.08, label = name, group = NULL), size = cityText.size, family = fontL) +
-  scale_size_area(max_size = 18) + guides(fill = FALSE, size = guide_legend(title = txt['cities.legendTitle',lang])) + 
+  scale_size_area(max_size = cityCircle.size) + guides(fill = FALSE, size = guide_legend(title = txt['cities.legendTitle',lang])) + 
   theme(legend.title = element_text(size = 14)) +
   ggtitle(txt['title.cities', lang])
 
@@ -122,7 +120,7 @@ mapPercentage <- function(co.df, var, breaks = breaks, title = "", colors = c('#
     legend.direction = "horizontal", legend.justification = "center") +
     geom_path(data = ct.df, colour = "#f7f5ed", size = canton.size) +
     geom_point(data = cities, aes(x = lon, y = lat, size = size, group = NULL), shape = 1, colour = "black") + 
-    scale_size_area(max_size = 18) +
+    scale_size_area(max_size = cityCircle.size) +
     guides(size = FALSE, fill = guide_legend(title=NULL, override.aes = list(colour = NULL)))
   
   co.map + scale_fill_manual(drop = FALSE, values = colorRampPalette(colors, interpolate = "spline")(length(breaks))) + 
@@ -171,3 +169,34 @@ get_legend<-function(myggplot){
   return(legend)
 }
 legend <- get_legend(maps[[3]])
+
+
+theme_nothing <- function(base_size = 12, base_family = ""){
+  theme_grey(base_size = base_size, base_family = base_family) %+replace%
+    theme(rect          = element_rect(fill = "transparent", colour = NA, color = NA, size = 0, linetype = 0),
+      line              = element_blank(),
+      text              = element_blank(),
+      title             = element_blank(),
+      panel.background  = element_blank(),
+      axis.ticks.margin = grid::unit(0, "lines"),
+      axis.ticks.length = grid::unit(0, "lines"),
+      legend.position   = "none",
+      panel.margin      = grid::unit(c(0, 0, 0, 0), "lines"),
+      plot.margin       = grid::unit(c(0, 0, 0, 0), "lines")
+    )
+}
+blankPlot <- ggplot() + geom_blank(aes(1,1)) + theme_nothing()
+
+maps2 <- lapply(1:length(maps), function(i) {
+  map <- maps[[i]]
+  map + theme(legend.position="none")
+})
+
+
+
+grid.arrange(maps2[[1]], maps2[[2]], maps2[[3]], maps2[[4]], maps2[[5]], maps2[[6]],maps2[[7]], maps2[[8]], legend, blankPlot, 
+  main =  textGrob(txt['header', lang], x = 0.01, hjust = 0, vjust = 4,gp = gpar(fontsize = 42, fontfamily = fontL, col = "black")),
+  sub = textGrob(txt['footer', lang], x = 0.95, vjust = -0.1, hjust = 1, gp = gpar(fontsize = 16, fontfamily = font, col = "#CCCCCC")),
+  ncol=2, nrow = 5, widths = c(2.7, 2.7), heights = c(1.5, 1.5, 1.5, 1.5, 0.4)
+)
+

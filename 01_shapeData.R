@@ -20,6 +20,7 @@ language.file <- "input/languages.csv"
 cities.file <- "input/cities.csv"
 
 vote2011.file <- "input/ef2011_district.csv"
+vote2011byDistrict.file <- "input/ef2011_bydistrict.csv"
 vote2011byParty.file <- "input/ef2011_party.csv"
 
 # settings
@@ -105,16 +106,16 @@ cleanPartyName <- function(partyName) {
   gsub(" (\\w+\\)|\\(.*\\))$", "", gsub("^ +", "", partyName))
 }
 
+## hack for non-matched bfs id!
+hackID <- data.frame(
+  id = c(311, 312, 313, 314, 315, 316),
+  idOld = c(303, 303, 302, 304, 305, 301)
+)
 matchOrFix_districtID2vote <- function(co2partis, co.df, elec.read) {
   naIdx <- which(is.na(co2partis))
   if(length(naIdx) > 0) {
     cat("Some districts could not be matched!!", "\n", "They will be hacked!", "\n")
     print( unique(co.df[naIdx, c('id', 'districtName')]))
-    ## hack for non-matched bfs id!
-    hackID <- data.frame(
-      id = c(311, 312, 313, 314, 315, 316),
-      idOld = c(303, 303, 302, 304, 305, 301)
-    )
     # one-line super match to replace 
     co2partis[naIdx] <- match(hackID$idOld, elec.read$ofsid)[match(co.df$id[naIdx], hackID$id)]
   }
@@ -155,10 +156,20 @@ colnames(elec.read)[1:3] <- c('ofsid', 'name', 'canton')
 colnames(elec.read) <- cleanPartyName(colnames(elec.read))
 
 co2partisP <- match(co.df$id, elec.read$ofsid)
-co2partisP <- matchOrFix_districtID2vote(co2partis, co.df, elec.read)
+co2partisP <- matchOrFix_districtID2vote(co2partisP, co.df, elec.read)
 
 # 
 write.csv(cbind(partis[co2partis,], elec.read[co2partisP,"Participation en %"]), file = vote2011.file, row.names = F)
+
+
+# write data by ofsid
+co2partisD <- structure(match(unique(co.df$id), elec.read$ofsid), names = unique(co.df$id))
+if(any(is.na(co2partisD))) {
+  co2partisD[which(is.na(co2partisD))] <- match(hackID[match(names(which(is.na(co2partisD))), hackID$id),'idOld'], elec.read$ofsid)
+  stopifnot(!all(is.na(co2partisD)))
+}
+write.csv(cbind(id = names(co2partisD), partis[co2partisD,], 
+  elec.read[co2partisD,"Participation en %"]), file = vote2011byDistrict.file, row.names = F)
 
 
 ## b. get the party % overall
