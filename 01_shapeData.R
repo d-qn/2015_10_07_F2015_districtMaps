@@ -1,8 +1,31 @@
-library(swiMap)
-library(readxl)
-library(dplyr)
-require(ggplot2)
-require(rgdal)
+if(!require(devtools)){
+  install.packages("devtools")
+  library(devtools)
+}
+if(!require(rgdal)) {
+  install.packages("rgdal", repos="http://cran.us.r-project.org")
+  require(rgdal)
+}
+if(!require(swiMap)) {
+  install_github("d-qn/swiMap")
+  require(swiMap)
+}
+if(!require(readxl)) {
+  devtools::install_github("hadley/readxl")
+  require(readxl)
+}
+if(!require(dplyr)) {
+  install.packages("dplyr", repos="http://cran.us.r-project.org")
+  require(dplyr)
+}
+if(!require(tidyr)) {
+  install.packages("tidyr", repos="http://cran.us.r-project.org")
+  require(tidyr)
+}
+if(!require(ggplot2)) {
+  install.packages("ggplot2", repos="http://cran.us.r-project.org")
+  require(ggplot2)
+}
 
 ############################################################################################
 ###		SETTINGS
@@ -30,15 +53,16 @@ party.sub <- c('PLR', 'PDC', 'PS', 'UDC', 'PVL', 'PBD', 'PES')
 ###	1. Load and save geographcial data files (district and cantons)
 ############################################################################################
 
+## Load commune geo data and merge them by district
 path.ch <- getPathShp('CH')
 co <- readOGR(path.ch, layer = 'municipalities-without-lakes')
-# reproject coordintes in the standard projection: http://gis.stackexchange.com/questions/45263/converting-geographic-coordinate-system-in-r 
+# reproject coordinates in the standard projection: http://gis.stackexchange.com/questions/45263/converting-geographic-coordinate-system-in-r 
 co <- spTransform(co, CRS("+init=epsg:4326"))
 
 # assign the district ID as ID
 ## --> for district not present (== 0), use the canton ID * 100 !!!
 co@data$id <- ifelse(co@data$BEZIRKSNR == 0, co@data$KANTONSNR * 100, co@data$BEZIRKSNR)
-# transform to data.frame
+# transform to data.frame and merge by district
 co.df <- fortify(co,  region = "id")
 co.df$id <- as.numeric(co.df$id)
 
@@ -47,7 +71,6 @@ ct <- readOGR(path.ch, layer = 'swissBOUNDARIES3D_1_2_TLM_KANTONSGEBIET')
 # reproject to standard coordindates
 ct <- spTransform(ct, CRS("+init=epsg:4326"))
 ct.df <- formatShp(ct)
-
 
 ## load communes data and its mapping bfs# to district name
 communes.read <- loadCommunesCHgeographicalLevels()[,1:4]
@@ -58,10 +81,8 @@ colnames(ofsId2district) <- c('ofsid', 'name')
 
 co.df$districtName <- ofsId2district[match(co.df$id, ofsId2district$ofsid),'name']
 
-#co.df$var <- lang[match(unlist(co.df$districtName), names(lang))]
 write.csv(co.df, file = district.file, row.names = F)
 write.csv(ct.df, file = canton.file, row.names = F)
-
 
 ############################################################################################
 ###	2.	Load language Switzerland and ciites
@@ -83,12 +104,11 @@ lang <- apply(lang, 1, paste, collapse = ", ", sep="")
 lang <- gsub(" $", "", gsub("(, )+", "", lang))
 
 # ensure map district names match all the language districts
-
 stopifnot(all(!is.na(match(unlist(co.df$districtName), names(lang)))))
 
 write.csv(lang[match(unlist(co.df$districtName), names(lang))], file = language.file, row.names = F)
 
-### #### add largest Swiss cities -- > uncomment this block to rerun
+### #### add largest Swiss cities -- > uncomment this block to re-geocode
 # library(ggmap)
 # cities <- data.frame(
 #   names = c("Zurich", "Geneva", "Basel", "Bern", "Lausanne"),

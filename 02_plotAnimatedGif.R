@@ -1,8 +1,23 @@
-library(dplyr)
-library(ggplot2)
-library(scales)
-library(gridExtra)
-library(animation)
+if(!require(dplyr)) {
+  install.packages("dplyr", repos="http://cran.us.r-project.org")
+  require(dplyr)
+}
+if(!require(ggplot2)) {
+  install.packages("ggplot2", repos="http://cran.us.r-project.org")
+  require(ggplot2)
+}
+if(!require(scales)) {
+  install.packages("scales", repos="http://cran.us.r-project.org")
+  require(scales)
+}
+if(!require(gridExtra)) {
+  install.packages("gridExtra", repos="http://cran.us.r-project.org")
+  require(gridExtra)
+}
+if(!require(animation)) {
+  install.packages("animation", repos="http://cran.us.r-project.org")
+  require(animation)
+}
 
 ############################################################################################
 ###		SETTINGS
@@ -62,7 +77,6 @@ theme_map <- function(base_size = 9, base_family = font) {
 } 
 
 # add header and footer to the graphic
-# http://stackoverflow.com/questions/21997715/add-ggplot-annotation-outside-the-panel-or-two-titles
 gridFormat <- function(gg, text = txt['header', lang], footer = txt['footer', lang]) {
   grid.arrange(gg, 
     main =  textGrob(text, x = 0.01, hjust = 0, vjust = 4,gp = gpar(fontsize = 42, fontfamily = fontL, col = "black")),
@@ -78,7 +92,6 @@ gridFormat <- function(gg, text = txt['header', lang], footer = txt['footer', la
 co.df <- read.csv(district.file)
 ct.df <- read.csv(canton.file)
 
-
 ###     1.Language map   ###
 langRegions <- read.csv(language.file)
 
@@ -87,7 +100,6 @@ stopifnot(all(!is.na(idx)))
 co.df$var <- factor(txt[idx,lang], levels = c(txt['lang.legend.Allemand', lang], txt['lang.legend.Français', lang], txt['lang.legend.Italien', lang], 
   txt['lang.legend.Allemand Romanche', lang], txt['lang.legend.Allemand Français', lang]))
 levels(co.df$var) <- paste(" ", levels(co.df$var), "  ")
-
 
 # plot 
 lang.palette <- c('#ab3d3f', '#366096', '#336666', '#669999', '#996699')
@@ -101,7 +113,6 @@ baseDistrict.map <- ggplot(co.df, aes(x = long, y = lat, group = group)) +
   
 map.lang <- baseDistrict.map + scale_fill_manual(values = lang.palette) + 
   ggtitle(txt["title.lang", lang]) 
-
 
 
 ###     2.Cities map   ###

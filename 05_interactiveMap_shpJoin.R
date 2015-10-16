@@ -1,11 +1,31 @@
-library(swiTheme)
-library(swiMap)
-library(dplyr)
-library(leaflet)
-library(readxl)
-require(rgdal)
-require(rgeos)
-require(maptools)
+if(!require(devtools)){
+  install.packages("devtools")
+  library(devtools)
+}
+if(!require(rgdal)) {
+  install.packages("rgdal", repos="http://cran.us.r-project.org")
+  require(rgdal)
+}
+if(!require(swiMap)) {
+  install_github("d-qn/swiMap")
+  require(swiMap)
+}
+if(!require(readxl)) {
+  devtools::install_github("hadley/readxl")
+  require(readxl)
+}
+if(!require(dplyr)) {
+  install.packages("dplyr", repos="http://cran.us.r-project.org")
+  require(dplyr)
+}
+if(!require(leaflet)) {
+  install.packages("leaflet", repos="http://cran.us.r-project.org")
+  require(leaflet)
+}
+if(!require(maptools)) {
+  install.packages("maptools", repos="http://cran.us.r-project.org")
+  require(maptools)
+}
 
 ############################################################################################
 ###		SETTINGS
@@ -15,7 +35,10 @@ require(maptools)
 vote2011.file <- "input/ef2011_bydistrict.csv"
 
 # settings
-party.sub <- c('PLR', 'PDC', 'PS', 'UDC', 'PVL', 'PBD', 'PES')
+party.sub <- structure(
+  c('#255FF6', '#FF7D00', '#FF0000', '#006A49', '#00E7A7', '#FCDB06', '#17A25A'), 
+  names = c('PLR', 'PDC', 'PS', 'UDC', 'PVL', 'PBD', 'PES')
+)
 
 ############################################################################################
 ###		LOAD DATA
@@ -30,7 +53,6 @@ co <- spTransform(co, CRS("+init=epsg:4326"))
 # assign the district ID as ID
 ## --> for district not present (== 0), use the canton ID * 100 !!!
 co@data$id <- ifelse(co@data$BEZIRKSNR == 0, co@data$KANTONSNR * 100, co@data$BEZIRKSNR)
-
 
 #http://gis.stackexchange.com/questions/63577/joining-polygons-in-r
 co.joined <- unionSpatialPolygons(co, co@data$id)
@@ -56,14 +78,14 @@ colnames(ofsId2district) <- c('ofsid', 'name')
 di@data$districtName <- ofsId2district[match(di@data$id, ofsId2district$ofsid), 'name']
 
 
-## 2. Load votes data 
+### 2. Load votes data  ####
 vote <- read.csv(vote2011.file, row.names = 1)
 stopifnot(di@data$id %in% rownames(vote) )
 
 idx <- match(di@data$id,rownames(vote))
 
-partis <- as.matrix(vote[idx,party.sub])
-## compute for each district the most popular party
+partis <- as.matrix(vote[idx,names(party.sub)])
+## bind the parti vote data and compute for each district the most popular party
 di@data <- cbind(di@data, 
   vote[idx,],
   maxParty = colnames(partis)[max.col(partis)][idx],
@@ -71,29 +93,34 @@ di@data <- cbind(di@data,
 )
 
 ############################################################################################
-###		COLORS
+###		MAP!
 ############################################################################################
 
+# 1. Define colors 
+
 colorsMaxParty <- structure(
-  c('#FCDB06', '#FF7D00', '#255FF6', '#FF0000', '#006A49'),
+  party.sub[match(levels(di@data$maxParty), names(party.sub))],
   names  = levels(di@data$maxParty))
-bins <- round(seq(0, 100, by = 5))
+maxV <- ceiling(max(partis) / 10) * 10
+bins <- round(seq(0, maxV, by = 5))
 
 palF <- colorFactor(colorsMaxParty, di@data$maxParty)
 
-pal_UDC <- colorBin("BuGn", 0:100, bins = bins)
-pal_PS  <- colorBin("Reds", 0:100, bins = bins)
-pal_PLR <- colorBin("Blues", 0:100, bins = bins)
-pal_PDC <- colorBin("Oranges", 0:100, bins = bins)
-pal_PBD <- colorBin("YlOrRd", 0:100, bins = bins)
+binColorByParty <- function(party) {
+  colorBin(colorRamp(c("white", party.sub[party]), interpolate = "spline"), 0:maxV, bins = bins)
+}
+pal.party <- sapply(names(party.sub), binColorByParty)
 
+# 2. Define popups 
 popup_max <- paste0("<strong>", di$districtName, "</strong>",
   "<br><strong>", di$maxParty, " ", round(di$maxPc),"%</strong>"
 )
 
+groups <- c('Parti dominant', '')
 
 mb_tiles <- 'http://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
 mb_attribution <- 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+
 m <- leaflet(data = di) %>% 
   addTiles(urlTemplate = mb_tiles, attribution = mb_attribution) %>% 
   setView(8.2, 46.8, zoom = 8)
@@ -102,9 +129,9 @@ map <- m %>% addPolygons(fillColor = ~palF(maxParty), fill = T, stroke = T,
   color = "white", fillOpacity = 0.9, opacity = 0.7, weight = 1,
   popup = popup_max, group = "maxParty") %>%
   addLegend("bottomright", pal = palF, values = ~maxParty,
-    title = "Parti", opacity = 0.9, layerId = "maxParty")
+    title = "Parti dominant", opacity = 0.9, layerId = "maxParty")
 
-map %>% addPolygons(fillColor = ~palUDC(UDC), fill = T, stroke = T, 
+map %>% addPolygons(fillColor = ~pal.party[['UDC']](UDC), fill = T, stroke = T, 
   color = "white", fillOpacity = 0.9, opacity = 0.7, weight = 1,
   popup = popup_max, group = "UDC") %>%
   addLayersControl(
@@ -113,8 +140,7 @@ map %>% addPolygons(fillColor = ~palUDC(UDC), fill = T, stroke = T,
   ) %>% hideGroup("UDC")
 
 
-
-saveWidget(map, file="frontalierEmploi_map.html",  selfcontained = F, libdir = "js")
+#saveWidget(map, file="frontalierEmploi_map.html",  selfcontained = F, libdir = "js")
 
 
 

@@ -1,14 +1,25 @@
-library(dplyr)
-library(ggplot2)
-library(scales)
-library(gridExtra)
+if(!require(dplyr)) {
+  install.packages("dplyr", repos="http://cran.us.r-project.org")
+  require(dplyr)
+}
+if(!require(ggplot2)) {
+  install.packages("ggplot2", repos="http://cran.us.r-project.org")
+  require(ggplot2)
+}
+if(!require(scales)) {
+  install.packages("scales", repos="http://cran.us.r-project.org")
+  require(scales)
+}
+if(!require(gridExtra)) {
+  install.packages("gridExtra", repos="http://cran.us.r-project.org")
+  require(gridExtra)
+}
 
 ############################################################################################
 ###		SETTINGS
 ############################################################################################
 
 ## input files
-
 translation.file <- "input/translations.csv"
 
 district.file <- "input/districtCH_map.csv"
@@ -151,15 +162,6 @@ for(party in orderedNames) {
 
 
 #### Small multiples
-# add header and footer to the graphic
-# http://stackoverflow.com/questions/21997715/add-ggplot-annotation-outside-the-panel-or-two-titles
-# gridFormat <- function(..., text = txt['header', lang], footer = txt['footer', lang]) {
-#   grid.arrange(..., 
-#                main =  textGrob(text, x = 0.01, hjust = 0, vjust = 4,gp = gpar(fontsize = 42, fontfamily = fontL, col = "black")),
-#                sub = textGrob(footer, x = 0.95, vjust = -0.1, hjust = 1, gp = gpar(fontsize = 16, fontfamily = font, col = "#CCCCCC"))
-#   )
-# }
-
 # http://www.sthda.com/english/wiki/ggplot2-easy-way-to-mix-multiple-graphs-on-the-same-page-r-software-and-data-visualization#add-a-common-legend-for-multiple-ggplot2-graphs
 
 get_legend<-function(myggplot){
@@ -194,9 +196,15 @@ maps2 <- lapply(1:length(maps), function(i) {
 
 
 
-grid.arrange(maps2[[1]], maps2[[2]], maps2[[3]], maps2[[4]], maps2[[5]], maps2[[6]],maps2[[7]], maps2[[8]], legend, blankPlot, 
-  main =  textGrob(txt['header', lang], x = 0.01, hjust = 0, vjust = 4,gp = gpar(fontsize = 42, fontfamily = fontL, col = "black")),
-  sub = textGrob(txt['footer', lang], x = 0.95, vjust = -0.1, hjust = 1, gp = gpar(fontsize = 16, fontfamily = font, col = "#CCCCCC")),
+grid.arrange(maps2[[1]], maps2[[2]], maps2[[3]], maps2[[4]], 
+  maps2[[5]], maps2[[6]],maps2[[7]], maps2[[8]], legend, blankPlot, 
+  # header
+  main =  textGrob(txt['header', lang], x = 0.01, hjust = 0, vjust = 4,
+  gp = gpar(fontsize = 42, fontfamily = fontL, col = "black")),
+  # footer
+  sub = textGrob(txt['footer', lang], x = 0.95, vjust = -0.1, hjust = 1, 
+  gp = gpar(fontsize = 16, fontfamily = font, col = "#CCCCCC")),
+  # grid
   ncol=2, nrow = 5, widths = c(2.7, 2.7), heights = c(1.5, 1.5, 1.5, 1.5, 0.4)
 )
 
