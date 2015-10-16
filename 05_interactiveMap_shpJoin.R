@@ -70,19 +70,22 @@ di@data <- cbind(di@data,
   maxPc = partis[matrix(c(1:nrow(partis), max.col(partis)), ncol = 2, nrow = nrow(partis))][idx]
 )
 
-    
 ############################################################################################
-###		COMBINE DATA
+###		COLORS
 ############################################################################################
-colorsMaxParty <- structure(
-  c('#FFD900', '#FF7D00', '#0039FF', '#FF0000', '#009E2D'),
-  names  = levels(di@data$maxParty))
 
-range(di@data$maxPc)
+colorsMaxParty <- structure(
+  c('#FCDB06', '#FF7D00', '#255FF6', '#FF0000', '#006A49'),
+  names  = levels(di@data$maxParty))
+bins <- round(seq(0, 100, by = 5))
 
 palF <- colorFactor(colorsMaxParty, di@data$maxParty)
-palUDC <- colorNumeric
 
+pal_UDC <- colorBin("BuGn", 0:100, bins = bins)
+pal_PS  <- colorBin("Reds", 0:100, bins = bins)
+pal_PLR <- colorBin("Blues", 0:100, bins = bins)
+pal_PDC <- colorBin("Oranges", 0:100, bins = bins)
+pal_PBD <- colorBin("YlOrRd", 0:100, bins = bins)
 
 popup_max <- paste0("<strong>", di$districtName, "</strong>",
   "<br><strong>", di$maxParty, " ", round(di$maxPc),"%</strong>"
@@ -95,12 +98,19 @@ m <- leaflet(data = di) %>%
   addTiles(urlTemplate = mb_tiles, attribution = mb_attribution) %>% 
   setView(8.2, 46.8, zoom = 8)
 
-m %>% addPolygons(fillColor = ~palF(maxParty), fill = T, stroke = T, 
+map <- m %>% addPolygons(fillColor = ~palF(maxParty), fill = T, stroke = T, 
   color = "white", fillOpacity = 0.9, opacity = 0.7, weight = 1,
   popup = popup_max, group = "maxParty") %>%
   addLegend("bottomright", pal = palF, values = ~maxParty,
     title = "Parti", opacity = 0.9, layerId = "maxParty")
 
+map %>% addPolygons(fillColor = ~palUDC(UDC), fill = T, stroke = T, 
+  color = "white", fillOpacity = 0.9, opacity = 0.7, weight = 1,
+  popup = popup_max, group = "UDC") %>%
+  addLayersControl(
+    baseGroups = c("maxParty", "UDC"),
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>% hideGroup("UDC")
 
 
 
