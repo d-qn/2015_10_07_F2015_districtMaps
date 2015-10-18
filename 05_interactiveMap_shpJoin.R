@@ -101,8 +101,6 @@ di@data <- cbind(
 # order levels of 'maxParty' by the most dominate party
 #relevel(di@data$maxParty)
 
-
-
 ############################################################################################
 ###		MAP!
 ############################################################################################
@@ -123,7 +121,7 @@ pal.party <- sapply(names(party.sub), binColorByParty)
 
 
 # 2. Define popups 
-popup <- paste0("<strong>", di$districtName,"</strong><i> (", di$canton ,")</i><br>",
+popup <- paste0("<strong>", di$districtName,"</strong> (", di$canton ,")<br>",
   '<p style="color:#808080;display:inline"><strong>', 
   di$maxParty, " ", round(di$maxPc),"%</p></strong><br>",
   '<p, li style="font-size: 0.8em"><i>', 
@@ -140,8 +138,17 @@ popup <- paste0("<strong>", di$districtName,"</strong><i> (", di$canton ,")</i><
   "</ul>"
 )
 
+popupCircle <- paste0(
+  "<strong>", di$districtName,"</strong><i> (", di$canton ,")</i><br>",
+  "Nombre d'électeurs inscrits: ", di$Electeurs.inscrits
+)
+centroids <- coordinates(di)
+idx <-match(di@data$id, rownames(centroids))
+di@data <- cbind(di@data, lng = centroids[idx,1], lat = centroids[idx,2])
+
+### MAP!
 mb_tiles <- 'http://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
-mb_attribution <- 'swissinfo.ch | source: Office Fédéral de la Statistique'
+mb_attribution <- 'swissinfo.ch | source: Office Fédéral de la Statistique'
 
 m <- leaflet(data = di) %>% 
   addTiles(urlTemplate = mb_tiles, attribution = mb_attribution) %>% 
@@ -149,17 +156,31 @@ m <- leaflet(data = di) %>%
 
 map1 <- m %>% addPolygons(fillColor = ~palF(maxParty), fill = T, stroke = T, 
  color = "white", fillOpacity = 0.9, opacity = 0.7, weight = 1,
-  popup = popup, group = groups[1]) %>%
-  addLegend("bottomright", pal = palF, values = ~maxParty,
-  title = "", opacity = 0.9, layerId = "legend", className = "info legend") %>%
+  popup = popup, group = "Dominant party") %>%
+  addLegend(
+    "bottomright", pal = palF, values = ~maxParty,
+    title = "", opacity = 0.9, layerId = "legend") %>%
+  addCircleMarkers(
+    lng = ~lng, lat = ~lat,
+    radius = ~sqrt(Electeurs.inscrits) / 50,
+    color = "#black", popup  = popupCircle,
+    stroke = FALSE, fillOpacity = 0.4,
+    group = "Nombre d'électeurs inscrits"
+  ) %>%  
   addLegend(position = "topright", 
-    title = "Elections Conseil national 2015: Parti politique dominant par district", opacity = 0, colors = NULL, labels = NULL)
+    title = "Elections Conseil national 2015: Parti politique dominant par district", 
+    opacity = 0, colors = NULL, labels = NULL) %>%
+  addLayersControl(
+    overlayGroups = "Nombre d'électeurs inscrits",
+    options = layersControlOptions(collapsed = FALSE)
+  ) %>%
+  hideGroup("Nombre d'électeurs inscrits")
 
 saveWidget(map1, file="districtMap_dominatingParty.html",  selfcontained = F, libdir = "js")
 
 
 
-map2 <- leaflet(data = di)  
+map2 <- m 
 addPartyPolygon <- function(map, party) {
   map %>% addPolygons(fillColor = ~pal.party[[party]](eval(parse(text=party))), 
   fill = T, stroke = T, 
@@ -175,5 +196,19 @@ map2 <- map2 %>%  addLayersControl(
 ) %>% showGroup("UDC")
 
 saveWidget(map2, file="districtMap_byParty.html", 
+  selfcontained = F, libdir = "js", background = "white")
+
+
+map3 <- map1
+  for(party in names(party.sub)) {
+    map3 <- addPartyPolygon(map3, party)
+  }  
+  
+map3 <- map3 %>%addLayersControl(
+  baseGroups = c("Dominant party", names(party.sub)),
+  options = layersControlOptions(collapsed = FALSE)
+) %>% showGroup("Dominant party")
+
+saveWidget(map3, file="districtMap_DomiandAndParty.html", 
   selfcontained = F, libdir = "js", background = "white")
 
