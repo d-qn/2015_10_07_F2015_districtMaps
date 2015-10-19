@@ -38,13 +38,13 @@ if(!require(maptools)) {
 ## raw data files
 vote2011.file <- "input/ef2011_bydistrict.csv"
 
+text.file <- "input/translations_interactiveMap.csv"
+
 # settings
 party.sub <- structure(
   c('#255FF6', '#FF7D00', '#FF0000', '#006A49', '#00E7A7', '#FCDB06', '#17A25A', '#333366'), 
   names = c('PLR', 'PDC', 'PS', 'UDC', 'PVL', 'PBD', 'PES', "Autres.partis")
 )
-
-
 
 ############################################################################################
 ###		LOAD DATA
@@ -83,12 +83,13 @@ colnames(ofsId2district) <- c('ofsid', 'name')
 di@data$districtName <- ofsId2district[match(di@data$id, ofsId2district$ofsid), 'name']
 
 
-
 ### 2. Load votes data  ####
 vote <- read.csv(vote2011.file, row.names = 1)
 stopifnot(di@data$id %in% rownames(vote) )
 
 idx <- match(di@data$id,rownames(vote))
+
+stopifnot(all(names(party.sub) %in% colnames(vote)))
 
 partis <- as.matrix(vote[idx, 1:match("Autres.partis", colnames(vote))])
 ## bind the parti vote data and compute for each district the most popular party
@@ -100,6 +101,16 @@ di@data <- cbind(
 )
 # order levels of 'maxParty' by the most dominate party
 #relevel(di@data$maxParty)
+
+
+############################################################################################
+###	 Load translation 
+############################################################################################
+
+txt <- read.csv(text.file, row.names = 1, stringsAsFactors = F)
+
+lang <- 'fr'
+
 
 ############################################################################################
 ###		MAP!
@@ -115,7 +126,7 @@ bins <- round(seq(0, maxV, by = 5))
 palF <- colorFactor(colorsMaxParty, di@data$maxParty)
 
 binColorByParty <- function(party) {
-  colorBin(colorRamp(c("white", party.sub[party])), 0:maxV, bins = bins)
+  colorBin(colorRamp(c("white", party.sub[party]), interpolate="spline"), 0:maxV, bins = bins)
 }
 pal.party <- sapply(names(party.sub), binColorByParty)
 
@@ -139,7 +150,7 @@ popup <- paste0("<strong>", di$districtName,"</strong> (", di$canton ,")<br>",
 )
 
 popupCircle <- paste0(
-  "<strong>", di$districtName,"</strong><i> (", di$canton ,")</i><br>",
+  "<strong>", di$districtName,"</strong> (", di$canton ,")<br>",
   "Nombre d'électeurs inscrits: ", di$Electeurs.inscrits
 )
 centroids <- coordinates(di)
@@ -164,17 +175,17 @@ map1 <- m %>% addPolygons(fillColor = ~palF(maxParty), fill = T, stroke = T,
     lng = ~lng, lat = ~lat,
     radius = ~sqrt(Electeurs.inscrits) / 50,
     color = "#black", popup  = popupCircle,
-    stroke = FALSE, fillOpacity = 0.4,
-    group = "Nombre d'électeurs inscrits"
+    stroke = FALSE, fillOpacity = 0.5,
+    group = "Taille de l'électorat"
   ) %>%  
   addLegend(position = "topright", 
     title = "Elections Conseil national 2015: Parti politique dominant par district", 
     opacity = 0, colors = NULL, labels = NULL) %>%
   addLayersControl(
-    overlayGroups = "Nombre d'électeurs inscrits",
+    overlayGroups = "Taille de l'électorat",
     options = layersControlOptions(collapsed = FALSE)
   ) %>%
-  hideGroup("Nombre d'électeurs inscrits")
+  hideGroup("Taille de l'électorat")
 
 saveWidget(map1, file="districtMap_dominatingParty.html",  selfcontained = F, libdir = "js")
 
@@ -190,25 +201,22 @@ addPartyPolygon <- function(map, party) {
 for(party in names(party.sub)) {
   map2 <- addPartyPolygon(map2, party)
 }
-map2 <- map2 %>%  addLayersControl(
-  baseGroups = names(party.sub),
-  options = layersControlOptions(collapsed = FALSE)
-) %>% showGroup("UDC")
+
+map2 <- map2 %>%  
+  addCircleMarkers(
+    lng = ~lng, lat = ~lat,
+    radius = ~sqrt(Electeurs.inscrits) / 50,
+    color = "#black", popup  = popupCircle,
+    stroke = FALSE, fillOpacity = 0.5,
+    group = "Taille de l'électorat"
+  ) %>%  
+  addLayersControl(
+    baseGroups = names(party.sub),
+    overlayGroups = "Taille de l'électorat",
+    options = layersControlOptions(collapsed = FALSE)
+) %>% showGroup("UDC") %>%
+  hideGroup("Taille de l'électorat")
 
 saveWidget(map2, file="districtMap_byParty.html", 
-  selfcontained = F, libdir = "js", background = "white")
-
-
-map3 <- map1
-  for(party in names(party.sub)) {
-    map3 <- addPartyPolygon(map3, party)
-  }  
-  
-map3 <- map3 %>%addLayersControl(
-  baseGroups = c("Dominant party", names(party.sub)),
-  options = layersControlOptions(collapsed = FALSE)
-) %>% showGroup("Dominant party")
-
-saveWidget(map3, file="districtMap_DomiandAndParty.html", 
-  selfcontained = F, libdir = "js", background = "white")
+  selfcontained = F, libdir = "js")
 

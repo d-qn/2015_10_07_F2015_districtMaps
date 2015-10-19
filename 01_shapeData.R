@@ -161,12 +161,12 @@ partis <- cbind(partis, "Autres partis" = round((100 - rowSums(partis, na.rm = T
 #replace NA by 0
 partis[which(is.na(partis), T)] <-0
 
-# compute the party strenght for all parties avaliable (not only party.sub)
-partis.all <- as.matrix(elec.read[,-c(1:3, (ncol(elec.read)-1):(ncol(elec.read)))])
-partis.all <- apply(partis.all, 2, as.numeric) 
-partis.all <- cbind(partis.all, "Autres partis" = round((100 - rowSums(partis.all, na.rm = T)), 2))
-#replace NA by 0
-partis.all[which(is.na(partis.all), T)] <-0
+# # compute the party strenght for all parties avaliable (not only party.sub)
+# partis.all <- as.matrix(elec.read[,-c(1:3, (ncol(elec.read)-1):(ncol(elec.read)))])
+# partis.all <- apply(partis.all, 2, as.numeric) 
+# partis.all <- cbind(partis.all, "Autres partis" = round((100 - rowSums(partis.all, na.rm = T)), 2))
+# #replace NA by 0
+# partis.all[which(is.na(partis.all), T)] <-0
 
 co2partis <- match(co.df$id, elec.read$ofsid)
 co2partis <- matchOrFix_districtID2vote(co2partis, co.df, elec.read)
@@ -198,7 +198,7 @@ if(any(is.na(co2partisD))) {
 
 
 write.csv(cbind(id = names(co2partisD), 
-  partis.all[co2partisD,], 
+  partis[co2partisD,], 
   elec.read[co2partisD,"canton"], 
   elec.read[co2partisD,"Electeurs inscrits"],
   elec.read[co2partisD,"Participation en %"]), 

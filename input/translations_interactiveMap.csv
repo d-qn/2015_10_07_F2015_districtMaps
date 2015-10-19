@@ -1,13 +1,21 @@
 code,fr
 header,Elections fédérales 2015: Force des partis au Conseil national par district
-footer,@duc_qn | swissinfo.ch | source: Office fédéral de la statistique
-party.PLR,Parti libéral-radical (PLR)
-party.PDC,Parti démocrate-chrétien (PDC)
-party.PS,Parti socialiste (PS)
-party.UDC,Union démocratique du centre (UDC)
-party.PVL,Vert'libéraux
-party.PBD,Parti bourgeois démocratique (PBD)
-party.PES,Les Verts
-party.Autres.partis,Autres partis
-party.Participation.en..,Participation en % aux élections fédérales
-party.title.append,
+footer,| swissinfo.ch | source: Office fédéral de la statistique
+short.PLR,PLR
+short.PDC,PDC
+short.PS,PS
+short.UDC,UDC
+short.PVL,PVL
+short.PBD,PBD
+short.PES,Les Verts
+short.Autres.partis,Autres partis
+full.PLR,Parti libéral-radical
+full.PDC,Parti démocrate-chrétien
+full.PS,Parti socialiste
+full.UDC,Union démocratique du centre
+full.PVL,Vert'libéraux
+full.PBD,Parti bourgeois démocratique
+full.PES,Les Verts
+full.Autres.partis,Autres partis
+pop.Participation.en..,Participation en % aux élections fédérales
+popup,
