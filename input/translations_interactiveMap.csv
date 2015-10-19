@@ -1,6 +1,6 @@
 code,fr
 header,Elections fédérales 2015: Force des partis au Conseil national par district
-footer,| swissinfo.ch | source: Office fédéral de la statistique
+footer, swissinfo.ch | source: Office fédéral de la statistique
 short.PLR,PLR
 short.PDC,PDC
 short.PS,PS
@@ -17,5 +17,8 @@ full.PVL,Vert'libéraux
 full.PBD,Parti bourgeois démocratique
 full.PES,Les Verts
 full.Autres.partis,Autres partis
-pop.Participation.en..,Participation en % aux élections fédérales
-popup,
+pop.Participation,Participation
+pop.electeurs,électeurs inscrits
+group.partiDominant,Parti dominant
+group.electorateSize,Taille de l'électorat
+title.partiDominant,Elections Conseil national 2015: Parti politique dominant par district

@@ -134,24 +134,24 @@ pal.party <- sapply(names(party.sub), binColorByParty)
 # 2. Define popups 
 popup <- paste0("<strong>", di$districtName,"</strong> (", di$canton ,")<br>",
   '<p style="color:#808080;display:inline"><strong>', 
-  di$maxParty, " ", round(di$maxPc),"%</p></strong><br>",
+  txt[paste0("short.", di$maxParty),lang], " ", round(di$maxPc),"%</p></strong><br>",
   '<p, li style="font-size: 0.8em"><i>', 
-  "Participation: ",  round(di$`Participation.en..`), "%, ",
-  "électeurs inscrits: ", di$`Electeurs.inscrits`, "</i><ul>" , 
-  "<li>UDC: ", round(di$UDC, 1), "%</li>",
-  "<li>PS: ", round(di$PS, 1),   "%</li>",
-  "<li>PLR: ", round(di$PLR, 1), "%</li>", 
-  "<li>PDC: ", round(di$PDC, 1), "%</li>", 
-  "<li>PES: ", round(di$PES, 1), "%</li>",   
-  "<li>PBD: ", round(di$PBD, 1), "%</li>", 
-  "<li>PVL: ", round(di$PVL, 1), "%</li>",
-  "<li>Autres.partis: ", round(di$Autres.partis, 1), "%</li>", 
+  txt['pop.Participation',lang], ": ",  round(di$`Participation.en..`), "%, ",
+  txt['pop.electeurs',lang], ": ", di$`Electeurs.inscrits`, "</i><ul>" , 
+  "<li>", txt['short.UDC',lang], ": ", round(di$UDC, 1), "%</li>",
+  "<li>", txt['short.PS',lang], ": ", round(di$PS, 1),   "%</li>",
+  "<li>", txt['short.PLR',lang], ": ", round(di$PLR, 1), "%</li>", 
+  "<li>", txt['short.PDC',lang], ": ", round(di$PDC, 1), "%</li>", 
+  "<li>", txt['short.PES',lang], ": ", round(di$PES, 1), "%</li>",   
+  "<li>", txt['short.PBD',lang], ": ", round(di$PBD, 1), "%</li>", 
+  "<li>", txt['short.PVL',lang], ": ", round(di$PVL, 1), "%</li>",
+  "<li>", txt['short.Autres.partis',lang], ": ", round(di$Autres.partis, 1), "%</li>", 
   "</ul>"
 )
 
 popupCircle <- paste0(
   "<strong>", di$districtName,"</strong> (", di$canton ,")<br>",
-  "Nombre d'électeurs inscrits: ", di$Electeurs.inscrits
+  txt['pop.electeurs',lang], " : ", di$Electeurs.inscrits
 )
 centroids <- coordinates(di)
 idx <-match(di@data$id, rownames(centroids))
@@ -159,7 +159,7 @@ di@data <- cbind(di@data, lng = centroids[idx,1], lat = centroids[idx,2])
 
 ### MAP!
 mb_tiles <- 'http://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
-mb_attribution <- 'swissinfo.ch | source: Office Fédéral de la Statistique'
+mb_attribution <- txt["footer", lang]
 
 m <- leaflet(data = di) %>% 
   addTiles(urlTemplate = mb_tiles, attribution = mb_attribution) %>% 
@@ -167,25 +167,26 @@ m <- leaflet(data = di) %>%
 
 map1 <- m %>% addPolygons(fillColor = ~palF(maxParty), fill = T, stroke = T, 
  color = "white", fillOpacity = 0.9, opacity = 0.7, weight = 1,
-  popup = popup, group = "Dominant party") %>%
+  popup = popup, group = txt["group.partiDominant", lang]) %>%
   addLegend(
-    "bottomright", pal = palF, values = ~maxParty,
-    title = "", opacity = 0.9, layerId = "legend") %>%
+    "bottomright", colors = colorsMaxParty,
+    title = "", opacity = 0.9, layerId = "legend",
+    labels = txt[paste0("full.", names(colorsMaxParty)),lang]) %>%
   addCircleMarkers(
     lng = ~lng, lat = ~lat,
     radius = ~sqrt(Electeurs.inscrits) / 50,
     color = "#black", popup  = popupCircle,
     stroke = FALSE, fillOpacity = 0.5,
-    group = "Taille de l'électorat"
+    group = txt["group.electorateSize", lang]
   ) %>%  
   addLegend(position = "topright", 
-    title = "Elections Conseil national 2015: Parti politique dominant par district", 
+    title = txt['title.partiDominant', lang], 
     opacity = 0, colors = NULL, labels = NULL) %>%
   addLayersControl(
-    overlayGroups = "Taille de l'électorat",
+    overlayGroups = txt["group.electorateSize", lang],
     options = layersControlOptions(collapsed = FALSE)
   ) %>%
-  hideGroup("Taille de l'électorat")
+  hideGroup(txt["group.electorateSize", lang])
 
 saveWidget(map1, file="districtMap_dominatingParty.html",  selfcontained = F, libdir = "js")
 
@@ -196,7 +197,7 @@ addPartyPolygon <- function(map, party) {
   map %>% addPolygons(fillColor = ~pal.party[[party]](eval(parse(text=party))), 
   fill = T, stroke = T, 
   color = "white", fillOpacity = 0.9, opacity = 0.7, weight = 1,
-  popup = popup, group = party)
+  popup = popup, group = txt[paste0("full.", party),lang])
 }
 for(party in names(party.sub)) {
   map2 <- addPartyPolygon(map2, party)
@@ -208,14 +209,14 @@ map2 <- map2 %>%
     radius = ~sqrt(Electeurs.inscrits) / 50,
     color = "#black", popup  = popupCircle,
     stroke = FALSE, fillOpacity = 0.5,
-    group = "Taille de l'électorat"
+    group = txt["group.electorateSize", lang]
   ) %>%  
   addLayersControl(
-    baseGroups = names(party.sub),
-    overlayGroups = "Taille de l'électorat",
+    baseGroups = txt[paste0("full.", names(party.sub)),lang],
+    overlayGroups = txt["group.electorateSize", lang],
     options = layersControlOptions(collapsed = FALSE)
-) %>% showGroup("UDC") %>%
-  hideGroup("Taille de l'électorat")
+) %>% showGroup(txt[paste0("full.", "UDC"),lang]) %>%
+  hideGroup(txt["group.electorateSize", lang])
 
 saveWidget(map2, file="districtMap_byParty.html", 
   selfcontained = F, libdir = "js")
