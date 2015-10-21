@@ -34,6 +34,7 @@ if(!require(ggplot2)) {
 ## raw data files
 lang.file <- "data/su-f-01.06.01.04.09_w-2013.xls"
 vote2011_raw.file <- "data/su-f-17.02.03.03.zb.2011.d.xls"
+vote2015_raw.file <- "data/su-f-17.02.03.03.za.2015.d.xls"
 
 ## output files
 district.file <- "input/districtCH_map.csv"
@@ -46,6 +47,11 @@ vote2011.file <- "input/ef2011_district.csv"
 vote2011byDistrict.file <- "input/ef2011_bydistrict.csv"
 vote2011byParty.file <- "input/ef2011_party.csv"
 
+vote2015.file <- "input/ef2015_district.csv"
+vote2015byDistrict.file <- "input/ef2015_bydistrict.csv"
+vote2015byParty.file <- "input/ef2015_party.csv"
+
+vote2015_2011DiffbyDistrict.file <- "input/ef2015_2011_bydistrict.csv"
 # settings
 party.sub <- c('PLR', 'PDC', 'PS', 'UDC', 'PVL', 'PBD', 'PES')
   
@@ -143,6 +149,9 @@ matchOrFix_districtID2vote <- function(co2partis, co.df, elec.read) {
   co2partis
 }
 
+
+############# 2011
+
 ## a. get the party % by district
 elec.read <- read_excel(vote2011_raw.file, skip = 3, sheet = 2)
 elec.read <- elec.read[!is.na(elec.read[,2]),]
@@ -160,13 +169,6 @@ partis <- as.matrix(elec.read[,match(party.sub, colnames(elec.read))])
 partis <- cbind(partis, "Autres partis" = round((100 - rowSums(partis, na.rm = T)), 2))
 #replace NA by 0
 partis[which(is.na(partis), T)] <-0
-
-# # compute the party strenght for all parties avaliable (not only party.sub)
-# partis.all <- as.matrix(elec.read[,-c(1:3, (ncol(elec.read)-1):(ncol(elec.read)))])
-# partis.all <- apply(partis.all, 2, as.numeric) 
-# partis.all <- cbind(partis.all, "Autres partis" = round((100 - rowSums(partis.all, na.rm = T)), 2))
-# #replace NA by 0
-# partis.all[which(is.na(partis.all), T)] <-0
 
 co2partis <- match(co.df$id, elec.read$ofsid)
 co2partis <- matchOrFix_districtID2vote(co2partis, co.df, elec.read)
@@ -214,5 +216,79 @@ stopifnot(all(!is.na(match(party.sub, colnames(partis.overall)))))
 partis.overall <- partis.overall[,match(party.sub, colnames(partis.overall))]
 partis.overall <- cbind(partis.overall, "Autres partis" = round((100 - rowSums(partis.overall, na.rm = T)), 2))
 write.csv(partis.overall, file = vote2011byParty.file, row.names = F)
+
+
+############# 2015 ################
+
+elec.read <- read_excel(vote2015_raw.file, skip = 3, sheet = 2)
+elec.read <- elec.read[!is.na(elec.read[,2]),]
+
+# transform OFS ID to numeric, remove non-numerical rows
+elec.read[,1] <- suppressWarnings(as.numeric(unlist(elec.read[,1])))
+elec.read <- elec.read[!is.na(elec.read[,1]),]
+# rename columns
+colnames(elec.read)[1:3] <- c('ofsid', 'name', 'canton')
+colnames(elec.read) <- cleanPartyName(colnames(elec.read))
+
+stopifnot(all(!is.na(match(party.sub, colnames(elec.read)))))
+
+partis <- as.matrix(elec.read[,match(party.sub, colnames(elec.read))])
+partis <- cbind(partis, "Autres partis" = round((100 - rowSums(partis, na.rm = T)), 2))
+#replace NA by 0
+partis[which(is.na(partis), T)] <-0
+
+co2partis <- match(co.df$id, elec.read$ofsid)
+
+
+##  get the participation
+# elec.read <- read_excel(vote2015_raw.file, skip = 3, sheet = 3)
+# elec.read <- elec.read[!is.na(elec.read[,2]),]
+# 
+# elec.read[,1] <- suppressWarnings(as.numeric(unlist(elec.read[,1])))
+# elec.read <- elec.read[!is.na(elec.read[,1]),]
+# # rename columns
+# colnames(elec.read)[1:3] <- c('ofsid', 'name', 'canton')
+# colnames(elec.read) <- cleanPartyName(colnames(elec.read))
+# 
+# co2partisP <- match(co.df$id, elec.read$ofsid)
+
+# 
+#write.csv(cbind(partis[co2partis,], elec.read[co2partisP,"Participation en %"]), file = vote2015.file, row.names = F)
+write.csv(partis[co2partis,], file = vote2015.file, row.names = F)
+
+# write data by ofsid (for interactive map)
+co2partisD <- structure(match(unique(co.df$id), elec.read$ofsid), names = unique(co.df$id))
+
+write.csv(cbind(id = names(co2partisD), 
+                partis[co2partisD,], 
+                elec.read[co2partisD,"canton"]), 
+#                 elec.read[co2partisD,"Electeurs inscrits"],
+#                 elec.read[co2partisD,"Participation en %"]), 
+          file = vote2015byDistrict.file, row.names = F)
+
+
+## b. get the party % overall
+elec.read <- read_excel(vote2015_raw.file, skip = 3, sheet = 2)
+partis.overall <- elec.read[which(elec.read[,1] == "Suisse"),]
+colnames(partis.overall) <- cleanPartyName(colnames(partis.overall))
+
+stopifnot(all(!is.na(match(party.sub, colnames(partis.overall)))))
+partis.overall <- partis.overall[,match(party.sub, colnames(partis.overall))]
+partis.overall <- cbind(partis.overall, "Autres partis" = round((100 - rowSums(partis.overall, na.rm = T)), 2))
+write.csv(partis.overall, file = vote2015byParty.file, row.names = F)
+
+
+############# 2011 - 2015 ################
+v2011 <- read.csv(vote2011byDistrict.file)
+v2015 <- read.csv(vote2015byDistrict.file)
+
+stopifnot(nrow(v2011) == nrow(v2015))
+idxC2011 <- match(colnames(v2015)[!colnames(v2015) %in% c('id', 'canton')], colnames(v2011))
+
+vDiff <- v2015
+vDiff[,colnames(vDiff)[!colnames(vDiff) %in% c('id', 'canton')]] <- 
+    vDiff[,colnames(vDiff)[!colnames(vDiff) %in% c('id', 'canton')]] - v2011[,idxC2011]
+
+write.csv(vDiff, file = vote2015_2011DiffbyDistrict.file, row.names = F)
 
 
